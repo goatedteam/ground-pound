@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "round.schema.json",
+  "title": "Round",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mode", "cost", "base_spin", "free_spins", "win", "capped"],
+  "properties": {
+    "mode": {"enum": ["base", "buy_standard", "buy_super"]},
+    "cost": {"type": "number", "exclusiveMinimum": 0},
+    "base_spin": {"anyOf": [{"$ref": "#/$defs/spin"}, {"type": "null"}]},
+    "free_spins": {"anyOf": [{"$ref": "#/$defs/freeSpins"}, {"type": "null"}]},
+    "win": {"type": "number", "minimum": 0, "maximum": 5000},
+    "capped": {"type": "boolean"}
+  },
+  "$defs": {
+    "grid": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "integer", "minimum": 0, "maximum": 8}}},
+    "marks": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "integer", "minimum": 0}}},
+    "cell": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0, "maximum": 5}},
+    "cluster": {
+      "type": "object", "additionalProperties": false,
+      "required": ["symbol", "size", "cells", "base_pay", "multiplier", "pay"],
+      "properties": {
+        "symbol": {"type": "integer", "minimum": 0, "maximum": 7},
+        "size": {"type": "integer", "minimum": 5, "maximum": 36},
+        "cells": {"type": "array", "minItems": 5, "items": {"$ref": "#/$defs/cell"}},
+        "base_pay": {"type": "number", "exclusiveMinimum": 0},
+        "multiplier": {"type": "integer", "minimum": 1},
+        "pay": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "step": {
+      "type": "object", "additionalProperties": false,
+      "required": ["grid", "marks_before", "clusters", "win", "marks_after"],
+      "properties": {
+        "grid": {"$ref": "#/$defs/grid"},
+        "marks_before": {"$ref": "#/$defs/marks"},
+        "clusters": {"type": "array", "items": {"$ref": "#/$defs/cluster"}},
+        "win": {"type": "number", "minimum": 0},
+        "marks_after": {"$ref": "#/$defs/marks"},
+        "nudged_reels": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 5}},
+        "entered": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 8}},
+        "new_scatters": {"type": "integer", "minimum": 0},
+        "capped": {"const": true}
+      }
+    },
+    "spin": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reel_set", "stops", "nudge_roll", "steps", "scatters", "win", "capped"],
+      "properties": {
+        "reel_set": {"enum": ["base", "bonus"]},
+        "stops": {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "integer", "minimum": 0}},
+        "nudge_roll": {"type": ["boolean", "null"]},
+        "steps": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/step"}},
+        "scatters": {"type": "integer", "minimum": 0},
+        "win": {"type": "number", "minimum": 0},
+        "capped": {"type": "boolean"},
+        "retrigger": {"type": "boolean"},
+        "spins_left": {"type": "integer", "minimum": 0}
+      }
+    },
+    "freeSpins": {
+      "type": "object", "additionalProperties": false,
+      "required": ["awarded", "start_marks", "spins", "retriggers", "win", "capped"],
+      "properties": {
+        "awarded": {"enum": [10, 12, 15, 20]},
+        "start_marks": {"$ref": "#/$defs/marks"},
+        "spins": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/spin"}},
+        "retriggers": {"type": "integer", "minimum": 0},
+        "win": {"type": "number", "minimum": 0},
+        "capped": {"type": "boolean"}
+      }
+    }
+  }
+}

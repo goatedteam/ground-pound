@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0d15">
+<title>Goated Ground &amp; Pound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;700&family=Kanit:ital,wght@1,800&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="fit">
+<div id="stage" class="base">
+  <div class="tint" aria-hidden="true"></div>
+  <img class="logo" src="./assets/ui/logo.webp" alt="Goated Ground &amp; Pound">
+
+  <button id="buySign" class="sign" aria-label="Buy Title Fight">
+    <img src="./assets/ui/contract.webp" alt="">
+    <span class="sign-body"><span class="d sign-h">Buy Title Fight</span><span class="d sign-price" id="buyPrice"></span></span>
+  </button>
+  <div id="spinsSign" class="sign card" hidden>
+    <img src="./assets/ui/roundcard.webp" alt="">
+    <span class="sign-body"><span class="d sign-h" id="spinsLabel">Spins left</span><span class="d sign-num" id="spinsLeft">0</span></span>
+  </div>
+
+  <div class="floor" aria-hidden="true"></div>
+  <div id="grid" class="grid"><div id="popup" class="d popup" aria-hidden="true"></div></div>
+  <div class="ring" aria-hidden="true"></div>
+
+  <div class="belt">
+    <img src="./assets/ui/belt.webp" alt="">
+    <div class="d belt-count" id="beltCount">0/3</div>
+    <p class="belt-cap" id="beltCap">Land 3 belts to start the Title Fight</p>
+  </div>
+
+  <div class="bar">
+    <div class="rivets" aria-hidden="true"></div>
+    <div class="bar-in">
+      <div class="icons">
+        <button id="btnRules" class="ic" aria-label="Rules and paytable"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+        <button id="btnSound" class="ic" aria-label="Sound on" aria-pressed="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h3l5-4v12l-5-4H4z"/><path d="M16 9a4 4 0 0 1 0 6"/></svg></button>
+      </div>
+      <button id="btnInfo" class="brass round" aria-label="Game info and rules">i</button>
+      <div class="stats">
+        <span class="lbl">Credit</span><span class="d val" id="credit"></span>
+        <span class="lbl">Bet</span><span class="d val" id="bet"></span>
+      </div>
+      <div class="strip" role="status" aria-live="polite">
+        <span class="d strip-1" id="strip1"></span>
+        <span class="strip-2" id="strip2"></span>
+      </div>
+      <div class="extra" id="extra"></div>
+      <button id="btnMinus" class="brass round" aria-label="Lower bet">&minus;</button>
+      <div class="spinwrap">
+        <button id="btnSpin" class="spin" aria-label="Spin">
+          <img src="./assets/ui/bell.webp" alt="">
+          <svg class="i-spin" width="60" height="60" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" aria-hidden="true"><path d="M14.3 28.9A18 18 0 0 1 45.8 20.4"/><path d="M49.7 35.1A18 18 0 0 1 18.2 43.6"/><path d="M51.6 15.4L52.7 28.1L40.1 25.6z M12.4 48.6L11.3 35.9L23.9 38.4z" fill="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          <svg class="i-stop" width="44" height="44" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 5l11 7-11 7z"/><path d="M13 5l8 7-8 7z" opacity="0.55"/></svg>
+        </button>
+        <button id="btnAuto" class="brass pill">Autoplay</button>
+      </div>
+      <button id="btnPlus" class="brass round" aria-label="Raise bet">+</button>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay" hidden></div>
+  <div id="flash" class="flash" aria-hidden="true"></div>
+  <div id="toast" class="d toast" aria-hidden="true"></div>
+  <div id="notice" class="notice"></div>
+</div>
+</div>
+<div id="modal" class="modal" hidden></div>
+<div id="loading" class="loading"><span class="d">Loading</span></div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

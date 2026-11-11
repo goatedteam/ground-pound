@@ -1,0 +1,95 @@
+{
+  "name": "Goated Ground & Pound",
+  "mechanic": {
+    "slide": "Takedown",
+    "chain": "Ground & Pound",
+    "marks": "Damage",
+    "free_spins": "Title Fight",
+    "retrigger": "Extra Rounds",
+    "cap": "Knockout"
+  },
+  "buys": {
+    "standard": "Main Event",
+    "super": "Grudge Match"
+  },
+  "symbols": [
+    {
+      "id": 0,
+      "key": "low1",
+      "name": "Red glove",
+      "asset": "low1.webp"
+    },
+    {
+      "id": 1,
+      "key": "low2",
+      "name": "Blue glove",
+      "asset": "low2.webp"
+    },
+    {
+      "id": 2,
+      "key": "low3",
+      "name": "Taped fist",
+      "asset": "low3.webp"
+    },
+    {
+      "id": 3,
+      "key": "low4",
+      "name": "MMA glove",
+      "asset": "low4.webp"
+    },
+    {
+      "id": 4,
+      "key": "high1",
+      "name": "Chain",
+      "asset": "high1.webp"
+    },
+    {
+      "id": 5,
+      "key": "high2",
+      "name": "Title belt",
+      "asset": "high2.webp"
+    },
+    {
+      "id": 6,
+      "key": "high3",
+      "name": "Cracked mouthguard",
+      "asset": "high3.webp"
+    },
+    {
+      "id": 7,
+      "key": "high4",
+      "name": "Cage",
+      "asset": "high4.webp"
+    },
+    {
+      "id": 8,
+      "key": "scatter",
+      "name": "Star belt",
+      "asset": "scatter.webp"
+    }
+  ],
+  "win_tiers": [
+    {
+      "min": 10,
+      "name": "Rocked"
+    },
+    {
+      "min": 25,
+      "name": "Brutal"
+    },
+    {
+      "min": 100,
+      "name": "Savage"
+    },
+    {
+      "min": 500,
+      "name": "GOATED Win"
+    }
+  ],
+  "cap_name": "Knockout",
+  "gore_levels": [
+    "Menacing",
+    "Bloodied",
+    "Brutal"
+  ]
+}
