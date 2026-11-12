@@ -13,7 +13,7 @@ const wait = (s: number) => new Promise<void>(r => gsap.delayedCall(s, r));
 const ZERO: Grid = Array.from({ length: 6 }, () => Array(6).fill(0));
 // Display-only board shown before the first spin. Never paid; holds no cluster and no scatter.
 const IDLE: Grid = [[7, 0, 4, 5, 7, 3], [4, 2, 4, 6, 6, 2], [1, 5, 0, 0, 1, 5], [7, 2, 3, 6, 7, 2], [4, 5, 5, 5, 4, 5], [7, 0, 7, 1, 1, 0]];
-export const PACE = { evalHold: 0.42, perCluster: 0.5, afterMarks: 0.22, afterSlide: 0.1, endOfSpin: 0.3, betweenFreeSpins: 0.35, tierMs: 2600 };
+export const PACE = { evalHold: 0.42, perCluster: 0.5, afterMarks: 0.22, afterSlide: 0.1, endOfSpin: 0.3, betweenFreeSpins: 0.35, tierMs: 4100, tierFree: 3200, chainHold: 1.0 };
 
 export class Game {
   private grid = new GridView();
@@ -60,7 +60,20 @@ export class Game {
     this.strip(m.turbo ? 'Hold space for turbo spin' : 'Place your bet', '');
     if (m.show_session_time || m.show_net_position) setInterval(() => this.extras(), 1000);
     this.extras();
-    $('loading').hidden = true;
+    this.waitForTap();
+  }
+
+  /** The loading screen stays up until the player taps: that tap is what lets the browser play the base song. */
+  private waitForTap() {
+    const el = $('loading');
+    el.classList.add('ready');
+    $('loadingText').textContent = 'Press anywhere to play';
+    const go = (ev: Event) => {
+      ev.preventDefault();
+      el.removeEventListener('pointerdown', go); window.removeEventListener('keydown', go);
+      gsap.to(el, { opacity: 0, duration: 0.35, onComplete: () => { el.hidden = true; } });
+    };
+    el.addEventListener('pointerdown', go); window.addEventListener('keydown', go);
   }
 
   private bind() {
@@ -79,6 +92,7 @@ export class Game {
     $('overlay').addEventListener('click', ev => { if (!(ev.target as HTMLElement).closest('button')) this.dismiss?.(); });
     window.addEventListener('keydown', ev => {
       if (!$('modal').hidden) { if (ev.key === 'Escape') this.closeModal(); return; }
+      if (!$('loading').hidden) return;
       if (ev.code !== 'Space' || (ev.target as HTMLElement).tagName === 'BUTTON') return;
       ev.preventDefault();
       if (this.dismiss) this.dismiss(); else if (this.busy) this.speedUp(); else if ($('overlay').hidden) this.spin();
@@ -91,6 +105,7 @@ export class Game {
     $('credit').textContent = this.money(this.balance);
     $('bet').textContent = this.money(this.bet);
     if (this.cfg.buys) $('buyPrice').textContent = this.money(this.cfg.buys.standard.price * this.bet);
+    this.buyRefresh?.();
     const idle = !this.busy;
     const ladder = this.cfg.market.bet_ladder_minor;
     ($('btnMinus') as HTMLButtonElement).disabled = !idle || this.betIndex === 0;
@@ -156,6 +171,7 @@ export class Game {
   }
 
   async spin() {
+    if (this.buyRefresh) this.dismiss?.(); // spinning from the buy contract walks away from it
     if (this.busy || !$('overlay').hidden) return;
     if (this.balance < this.bet) { this.strip('Not enough credit', ''); audio.play('no_credit'); this.auto = 0; this.refresh(); return; }
     this.setBusy(true);
@@ -183,33 +199,48 @@ export class Game {
     if (!this.busy) this.spin();
   }
 
+  /** Set while the buy contract is open: re-reads the bet so the prices follow + and -. */
+  private buyRefresh: (() => void) | null = null;
+
   private openBuy() {
     if (this.busy || !this.cfg.buys) return;
-    const b = this.cfg.buys, bet = this.bet;
-    const price = (k: 'standard' | 'super') => this.money(b[k].price * bet);
+    const b = this.cfg.buys;
+    const kinds = ['standard', 'super'] as const;
+    const price = (k: 'standard' | 'super') => this.money(b[k].price * this.bet);
     const ov = $('overlay');
     ov.className = 'overlay';
     ov.innerHTML = `<div class="contract"><img src="./assets/ui/contract_large.webp" alt=""><div class="contract-in">
       <h1 class="d">Buy <span>Title Fight</span></h1>
       <div class="opts">
-        <div class="opt"><span class="k">${b.standard.name}</span><span class="d p">${price('standard')}</span><p>Straight to the Title Fight. The canvas starts clean.</p><button class="btn" data-kind="standard">Sign for ${b.standard.name}</button></div>
-        <div class="opt"><span class="k">${b.super.name}</span><span class="d p">${price('super')}</span><p>Every cell starts with x5, x10 or x15 Damage.</p><button class="btn red" data-kind="super">Sign for ${b.super.name}</button></div>
+        <div class="opt"><span class="k">${b.standard.name}</span><span class="d p" data-price="standard"></span><p>Straight to the Title Fight. The canvas starts clean.</p><button class="btn" data-kind="standard"></button></div>
+        <div class="opt"><span class="k">${b.super.name}</span><span class="d p" data-price="super"></span><p>Every cell starts with x5, x10 or x15 Damage.</p><button class="btn red" data-kind="super"></button></div>
       </div>
       <button class="btn ghost" data-kind="cancel">Walk away</button></div></div>`;
     ov.hidden = false; audio.play('buy_open');
     let armed = '';
-    const close = () => { ov.hidden = true; ov.innerHTML = ''; this.dismiss = null; };
+    const btn = (k: string) => ov.querySelector<HTMLButtonElement>(`button[data-kind="${k}"]`)!;
+    const render = () => {
+      armed = '';
+      for (const k of kinds) {
+        ov.querySelector(`[data-price="${k}"]`)!.textContent = price(k);
+        const el = btn(k), short = this.balance < b[k].price * this.bet;
+        el.classList.remove('confirm'); el.disabled = short;
+        el.textContent = short ? 'Not enough credit' : `Sign for ${b[k].name}`;
+      }
+    };
+    render();
+    this.buyRefresh = render;
+    const close = () => { ov.hidden = true; ov.innerHTML = ''; this.dismiss = null; this.buyRefresh = null; };
     this.dismiss = close;
-    ov.querySelectorAll<HTMLButtonElement>('button').forEach(btn => btn.addEventListener('click', () => {
-      const kind = btn.dataset.kind!;
+    ov.querySelectorAll<HTMLButtonElement>('button').forEach(el => el.addEventListener('click', () => {
+      const kind = el.dataset.kind!;
       audio.play('ui_click');
       if (kind === 'cancel') return close();
       const k = kind as 'standard' | 'super';
-      if (this.balance < b[k].price * bet) { btn.textContent = 'Not enough credit'; btn.disabled = true; return; }
+      if (this.balance < b[k].price * this.bet) return render();
       if (armed !== kind) { // second tap confirms
-        armed = kind;
-        ov.querySelectorAll<HTMLButtonElement>('button[data-kind]').forEach(o => { if (o.dataset.kind !== 'cancel') { o.classList.remove('confirm'); o.textContent = `Sign for ${b[o.dataset.kind as 'standard' | 'super'].name}`; } });
-        btn.classList.add('confirm'); btn.textContent = `Confirm ${price(k)}`;
+        render(); armed = kind;
+        el.classList.add('confirm'); el.textContent = `Confirm ${price(k)}`;
         return;
       }
       audio.play('buy_sign'); close(); this.buy(k);
@@ -249,6 +280,7 @@ export class Game {
           await this.evaluate(ev);
           break;
         case 'slide':
+          this.hidePopup();
           audio.play('takedown', { intensity: ev.hit });
           await this.grid.slide(ev.reels, ev.entered, ev.grid);
           this.grid.shake(this.stage, Math.min(2.2, 0.8 + ev.hit * 0.25)); if (ev.hit >= 3) this.flash();
@@ -256,13 +288,14 @@ export class Game {
           await wait(PACE.afterSlide);
           break;
         case 'spin_end':
-          this.grid.clearHighlight();
+          if (ev.kind !== 'free' && ev.spinWin > 0) await wait(PACE.chainHold); // let the finished chain sit on screen
+          this.grid.clearHighlight(); this.hidePopup();
           $('strip2').innerHTML = this.fight ? `Spins left ${Math.max(ev.spinsLeft ?? 0, 0)}` : '';
           if (ev.clearMarks) this.grid.showMarks(ZERO);
           if (ev.kind === 'free') {
             if (ev.retrigger) { audio.play('extra_rounds'); await this.toast(`+${this.cfg.rules.retrigger_spins} spins`); }
             spinsLeft = ev.spinsLeft ?? 0; this.setSpinsLeft(spinsLeft);
-            if (!ev.capped && ev.spinWin >= 2500) await this.tier(ev.spinWin, 1700);
+            if (!ev.capped && ev.spinWin >= 2500) await this.tier(ev.spinWin, PACE.tierFree);
             await wait(PACE.betweenFreeSpins);
           } else await wait(ev.spinWin > 0 ? PACE.endOfSpin : 0.05);
           break;
@@ -301,11 +334,13 @@ export class Game {
     }
     await pulse;
     if (ev.capped) gsap.globalTimeline.timeScale(1);
-    gsap.to($('popup'), { opacity: 0, duration: 0.15 });
+    if (this.fight) this.hidePopup(); // base game: the last pay stays up until the chain ends
     this.showWin(ev.roundWin);
     this.grid.showMarks(ev.marksAfter, true); audio.play('damage_up');
     await wait(PACE.afterMarks);
   }
+
+  private hidePopup() { gsap.to($('popup'), { opacity: 0, duration: 0.15 }); }
 
   private popup(cl: Cluster) {
     const { x, y } = this.grid.cellCentre(cl.cells), p = $('popup');

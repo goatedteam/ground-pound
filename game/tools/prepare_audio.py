@@ -5,8 +5,8 @@
 Raw sound-effect takes are named <sound>_<take>.mp3 (reel_stop_1.mp3, reel_stop_2.mp3 ...), as listed
 in the audio prompts doc. Each take is trimmed of leading and trailing silence (loops are left whole),
 levelled to a common loudness, faded at the tail and written as .webm (Opus) and .mp3 under
-game/client/public/assets/audio/. Songs get a loop region that starts after the intro and ends on a
-matching beat before the ending, with a short crossfade baked in so the loop has no seam.
+game/client/public/assets/audio/. Songs get a loop region that starts after the intro and ends where the music
+matches it, with a level ramp and a short crossfade baked in so the loop has no audible seam.
 assets/audio/manifest.json lists every file, its playback gain and the loop points.
 Requires ffmpeg and numpy.
 """
@@ -78,54 +78,58 @@ def prepare_sfx(path, loop):
     return x * (10 ** (gain_db / 20))
 
 
-def onset_env(m, hop):
-    n = len(m) // hop
-    e = np.log1p(1000 * np.sqrt((m[: n * hop].reshape(n, hop) ** 2).mean(1)))
-    return np.maximum(0, np.diff(e, prepend=e[0]))
+def band_frames(m, hop=1024):
+    """Log-spectrum in 48 bands per frame, each frame normalised: what the music sounds like, not how loud."""
+    n = (len(m) - 2048) // hop
+    fr = np.lib.stride_tricks.sliding_window_view(m, 2048)[::hop][:n] * np.hanning(2048)
+    sp = np.abs(np.fft.rfft(fr, axis=1))
+    edges = np.unique(np.geomspace(2, 1024, 48).astype(int))
+    f = np.log1p(10 * np.add.reduceat(sp, edges, axis=1))
+    f -= f.mean(1, keepdims=True)
+    return f / (np.linalg.norm(f, axis=1, keepdims=True) + 1e-9), SR / hop
+
+
+def rms_db(m, a, b):
+    return db(float(np.sqrt((m[int(a * SR):int(b * SR)] ** 2).mean())))
 
 
 def find_loop(x):
-    """Loop start after the intro, loop end a whole number of bars later, where the music matches best."""
+    """Pick a loop start after the intro and a loop end near the finish where the 8 seconds around both match.
+
+    Every start/end pair is scored by how alike the music sounds 4 s either side of each point. Among pairs
+    scoring within 0.03 of the best, the longest loop wins, so the player hears as much of the song as
+    possible before it repeats. A slow gain ramp across the loop evens out a song that builds, so the
+    level does not drop at the seam, and an 80 ms crossfade is baked in at the end.
+    """
     m = x.mean(1)
-    hop = 480
-    fps = SR / hop
-    on = onset_env(m, hop)
-    o = on - on.mean()
-    ac = np.correlate(o, o, "full")[len(o) - 1:]
-    bpm = max(np.arange(70, 200, 0.25), key=lambda b: np.interp([60 / b * fps * k for k in (1, 2, 4)], np.arange(len(ac)), ac).sum())
-    bar = 4 * 60 / bpm
-    w = int(3 * fps)
-    n = len(on)
     dur = len(m) / SR
-
-    def win(i):
-        v = on[i - w:i + w]
-        v = v - v.mean()
-        return v / (np.linalg.norm(v) + 1e-9)
-
-    best = (-9.0, 0, 0)
-    for ls in range(int(10 * fps), int(min(30, dur / 3) * fps)):
-        a = win(ls)
-        kmax = int((dur - 1.5 - ls / fps) / bar)
-        for k in range(kmax, max(kmax - 12, 1), -1):
-            guess = ls + k * bar * fps
-            for le in range(int(guess - 6), int(guess + 7)):
-                if le + w >= n:
-                    continue
-                c = float(a @ win(le))
-                if c > best[0]:
-                    best = (c, ls, le)
-    _, ls, le = best
-    s0, e0 = int(ls / fps * SR), int(le / fps * SR)
+    F, fps = band_frames(m)
+    W = int(4 * fps)
+    i0, i1 = int(8 * fps), int(min(45, dur / 3) * fps)
+    j0, j1 = int(dur * 0.55 * fps), int((dur - 1.0) * fps) - W
+    S = F[i0 - W:i1 + W] @ F[j0 - W:j1 + W].T
+    acc = np.zeros((i1 - i0, j1 - j0))
+    for k in range(-W, W + 1):
+        acc += S[W + k:W + k + i1 - i0, W + k:W + k + j1 - j0]
+    acc /= 2 * W + 1
+    length = (j0 + np.arange(j1 - j0))[None, :] - (i0 + np.arange(i1 - i0))[:, None]
+    ok = acc >= acc.max() - 0.03
+    bi, bj = np.unravel_index(np.argmax(np.where(ok, length, -1)), acc.shape)
+    score = float(acc[bi, bj])
+    s0, e0 = int((i0 + bi) / fps * SR), int((j0 + bj) / fps * SR)
     ref = m[s0 - int(0.2 * SR):s0]
-    shift = max(range(-int(0.02 * SR), int(0.02 * SR) + 1, 4),
-                key=lambda j: float(np.dot(ref, m[e0 + j - len(ref):e0 + j])))
-    e0 += shift
-    xf = int(0.08 * SR)
+    span = int(0.025 * SR)
+    e0 += max(range(-span, span + 1, 4), key=lambda j: float(np.dot(ref, m[e0 + j - len(ref):e0 + j])))
+    ls, le = s0 / SR, e0 / SR
+    drop = ((rms_db(m, le - 3, le) - rms_db(m, ls - 3, ls)) + (rms_db(m, le, le + 3) - rms_db(m, ls, ls + 3))) / 2
     out = x[:e0].copy()
+    if abs(drop) > 0.5:
+        ramp = 10 ** (-drop * np.linspace(0, 1, e0 - s0) / 20)
+        out[s0:e0] *= ramp[:, None]
+    xf = int(0.08 * SR)
     t = np.linspace(0, 1, xf)[:, None]
     out[e0 - xf:e0] = out[e0 - xf:e0] * np.cos(t * np.pi / 2) + x[s0 - xf:s0] * np.sin(t * np.pi / 2)
-    return out, s0 / SR, e0 / SR, bpm
+    return out, ls, le, score, drop
 
 
 def loudnorm(x, target=-18.0):
@@ -168,10 +172,10 @@ def main():
     for spec in a.music:
         name, path = spec.split("=", 1)
         x = decode(path)
-        looped, ls, le, bpm = find_loop(x)
+        looped, ls, le, score, drop = find_loop(x)
         encode(loudnorm(looped), OUT / f"music/music_{name}", "128k", "192k")
         manifest["music"][name] = {"file": f"music/music_{name}", "loopStart": round(ls, 5), "loopEnd": round(le, 5), "gain": 1.0}
-        print(f"music {name}: ~{bpm:.1f} BPM, loop {ls:.2f}s to {le:.2f}s")
+        print(f"music {name}: loop {ls:.2f}s to {le:.2f}s ({le - ls:.0f}s), seam match {score:.2f}, level ramp {drop:+.1f} dB")
 
     mpath.write_text(json.dumps(manifest, indent=1))
     print("wrote", mpath)

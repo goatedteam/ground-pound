@@ -216,6 +216,12 @@
    "loopStart": 15.36,
    "loopEnd": 179.92442,
    "gain": 1.0
+  },
+  "base": {
+   "file": "music/music_base",
+   "loopStart": 18.83733,
+   "loopEnd": 152.423,
+   "gain": 1.0
   }
  }
 }

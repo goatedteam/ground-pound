@@ -2,8 +2,9 @@
 // game/tools/prepare_audio.py. Everything is decoded into Web Audio buffers so short sounds
 // fire without delay and the music loops on exact sample positions.
 //
-// Browsers only allow audio after the player interacts, so the context starts on the first
-// tap, click or key press; music asked for before that starts then.
+// The context is created while the game loads so the base song can start on the loading
+// screen. Most browsers keep it suspended until the player taps, clicks or presses a key;
+// the loading screen asks for that tap, and the song starts then.
 
 interface SfxDef { files: string[]; gain?: number }
 interface MusicDef { file: string; loopStart: number; loopEnd: number; gain?: number }
@@ -11,6 +12,8 @@ interface Manifest { sfx: Record<string, SfxDef>; music: Record<string, MusicDef
 
 const BASE = './assets/audio/';
 const XFADE = 0.9; // seconds between music tracks
+const CROWD_UNDER_SONG = 0.16; // arena murmur kept low under the base song
+const CROWD_ALONE = 0.3; // murmur level when no base song is installed
 
 class AudioEngine {
   private ctx: AudioContext | null = null;
@@ -23,6 +26,7 @@ class AudioEngine {
   private lastTake = new Map<string, number>();
   private loops = new Map<string, { src: AudioBufferSourceNode; gain: GainNode }>();
   private track: { name: string; src: AudioBufferSourceNode; gain: GainNode } | null = null;
+  private crowd: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
   private wanted: 'base' | 'fight' | null = null;
   private on = true;
 
@@ -34,9 +38,13 @@ class AudioEngine {
     } catch { this.manifest = null; }
     const probe = document.createElement('audio');
     this.ext = probe.canPlayType('audio/webm; codecs="opus"') ? '.webm' : '.mp3';
+    this.start();
     const unlock = () => this.start();
     for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, unlock, { passive: true });
   }
+
+  /** True once the browser lets sound play. */
+  get running() { return this.ctx?.state === 'running'; }
 
   private start() {
     if (!this.manifest) return;
@@ -49,8 +57,9 @@ class AudioEngine {
       this.master.connect(this.ctx.destination);
       this.sfxBus = this.ctx.createGain(); this.sfxBus.gain.value = 0.9; this.sfxBus.connect(this.master);
       this.musicBus = this.ctx.createGain(); this.musicBus.gain.value = 0.55; this.musicBus.connect(this.master);
-      // warm the cache so the first spin is not silent
+      // decode everything while the loading screen is up so the first spin is not silent
       for (const def of Object.values(this.manifest.sfx)) def.files.forEach(f => this.buffer(f));
+      for (const def of Object.values(this.manifest.music)) this.buffer(def.file);
     }
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
     if (this.wanted && this.track?.name !== this.wanted) this.music(this.wanted);
@@ -122,26 +131,47 @@ class AudioEngine {
     l.src.stop(this.ctx.currentTime + 0.2);
   }
 
-  /** Switch the music bed. With no base song in the manifest, the crowd loop plays instead. */
+  /** Switch the music. The base game has its song with a low arena murmur under it; the Title Fight has its own song. */
   music(name: 'base' | 'fight' | null) {
     this.wanted = name;
     if (!this.ctx || !this.manifest) return;
     const now = this.ctx.currentTime;
     if (this.track && this.track.name !== name) {
-      const old = this.track;
-      old.gain.gain.cancelScheduledValues(now);
-      old.gain.gain.setValueAtTime(old.gain.gain.value, now);
-      old.gain.gain.linearRampToValueAtTime(0, now + XFADE);
-      old.src.stop(now + XFADE + 0.05);
+      this.fadeOut(this.track, now);
       this.track = null;
     }
-    if (!name || this.track) return;
-    const def = this.manifest.music[name];
-    if (def) this.bed(name, def.file, def.gain ?? 1, def.loopStart, def.loopEnd);
-    else if (name === 'base' && this.manifest.sfx.crowd_bed) {
-      const file = this.pick('crowd_bed');
-      if (file) this.bed(name, file, this.manifest.sfx.crowd_bed.gain ?? 0.6, 0, 0);
-    }
+    const def = name ? this.manifest.music[name] : undefined;
+    if (name === 'base') this.crowdBed(def ? CROWD_UNDER_SONG : CROWD_ALONE);
+    else if (this.crowd) { this.fadeOut(this.crowd, now); this.crowd = null; }
+    if (def && !this.track) this.bed(name!, def.file, def.gain ?? 1, def.loopStart, def.loopEnd);
+  }
+
+  private fadeOut(l: { src: AudioBufferSourceNode; gain: GainNode }, now: number) {
+    l.gain.gain.cancelScheduledValues(now);
+    l.gain.gain.setValueAtTime(l.gain.gain.value, now);
+    l.gain.gain.linearRampToValueAtTime(0, now + XFADE);
+    try { l.src.stop(now + XFADE + 0.05); } catch { /* never started: still decoding */ }
+  }
+
+  private crowdBed(level: number) {
+    const def = this.manifest?.sfx.crowd_bed;
+    if (!def || this.crowd || !this.ctx) return;
+    const file = this.pick('crowd_bed');
+    if (!file) return;
+    const pending = this.ctx.createGain(); // claims the slot while the buffer decodes
+    this.crowd = { src: this.ctx.createBufferSource(), gain: pending };
+    const slot = this.crowd;
+    this.buffer(file).then(buf => {
+      if (!buf || !this.ctx || this.crowd !== slot) return;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      const t = this.ctx.currentTime;
+      pending.gain.setValueAtTime(0, t);
+      pending.gain.linearRampToValueAtTime(level * (def.gain ?? 1), t + XFADE);
+      src.connect(pending).connect(this.musicBus!);
+      src.start();
+      slot.src = src;
+    });
   }
 
   private bed(name: 'base' | 'fight', file: string, gain: number, loopStart: number, loopEnd: number) {
