@@ -70,7 +70,8 @@ button.sign:disabled { filter: saturate(0.5) brightness(0.8); }
 .brass { background: #9ea5b1; border: 3px solid #0b0b0d; color: #14151a; font-weight: 700; }
 .brass:hover:not(:disabled) { background: #c9ced6; }
 .brass:disabled { background: #4a4e57; color: #14151a; }
-.brass.round { flex: none; width: 48px; height: 48px; border-radius: 9999px; font-size: 26px; line-height: 1; }
+.brass.round { flex: none; width: 48px; height: 48px; padding: 0; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; }
+.brass.round svg { display: block; flex: none; }
 #btnInfo { font-size: 22px; font-style: italic; }
 .brass.pill { border-width: 2px; border-radius: 9999px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; }
 .brass.pill.on { background: #ff3b4e; color: #fff; }
