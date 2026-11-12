@@ -73,9 +73,30 @@ export class Game {
     const go = (ev: Event) => {
       ev.preventDefault();
       el.removeEventListener('pointerdown', go); window.removeEventListener('keydown', go);
-      gsap.to(el, { opacity: 0, duration: 0.35, onComplete: () => { el.hidden = true; } });
+      el.classList.remove('ready');
+      this.roundBell(el);
     };
     el.addEventListener('pointerdown', go); window.addEventListener('keydown', go);
+  }
+
+  /** Opening bell: the bell rings, a Round 1 card slams in over the logo, then the slot opens. */
+  private roundBell(el: HTMLElement) {
+    audio.unlock();
+    audio.play('bell_intro');
+    const card = $('roundCard'), logo = $('loadingLogo');
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    gsap.set(card, { xPercent: -50, yPercent: -50 });
+    const tl = gsap.timeline({ onComplete: () => { el.hidden = true; } });
+    tl.to($('loadingText'), { opacity: 0, duration: 0.15 }, 0);
+    if (calm) {
+      tl.to(card, { opacity: 1, duration: 0.3 }, 0.1).to(logo, { opacity: 0.35, duration: 0.3 }, 0.1);
+    } else {
+      tl.fromTo(logo, { x: -10 }, { x: 0, duration: 0.5, ease: 'elastic.out(1.2, 0.25)' }, 0)
+        .fromTo(card, { opacity: 0, scale: 2.6, rotation: -16 }, { opacity: 1, scale: 1, rotation: -5, duration: 0.32, ease: 'power4.in' }, 0.12)
+        .to(logo, { opacity: 0.35, scale: 0.94, duration: 0.3 }, 0.2)
+        .fromTo(el, { x: 0, y: 0 }, { keyframes: [{ x: -9, y: 4 }, { x: 7, y: -3 }, { x: -4, y: 2 }, { x: 0, y: 0 }], duration: 0.28 }, 0.44);
+    }
+    tl.to(el, { opacity: 0, duration: 0.45, ease: 'power1.in' }, 1.75);
   }
 
   private bind() {

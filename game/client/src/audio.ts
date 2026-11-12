@@ -43,6 +43,9 @@ class AudioEngine {
     for (const ev of ['pointerdown', 'keydown', 'touchend']) window.addEventListener(ev, unlock, { passive: true });
   }
 
+  /** Call from inside a tap or key handler so a sound played in that handler is heard. */
+  unlock() { this.start(); }
+
   /** True once the browser lets sound play. */
   get running() { return this.ctx?.state === 'running'; }
 
