@@ -1,0 +1,221 @@
+{
+ "sfx": {
+  "anticipation": {
+   "files": [
+    "sfx/anticipation_1",
+    "sfx/anticipation_2"
+   ],
+   "gain": 0.8
+  },
+  "bell_intro": {
+   "files": [
+    "sfx/bell_intro_1",
+    "sfx/bell_intro_2"
+   ],
+   "gain": 0.95
+  },
+  "belt_count": {
+   "files": [
+    "sfx/belt_count_1",
+    "sfx/belt_count_2"
+   ],
+   "gain": 0.7
+  },
+  "belt_land": {
+   "files": [
+    "sfx/belt_land_1",
+    "sfx/belt_land_2",
+    "sfx/belt_land_3",
+    "sfx/belt_land_4"
+   ],
+   "gain": 0.9
+  },
+  "bet_step": {
+   "files": [
+    "sfx/bet_step_1",
+    "sfx/bet_step_2"
+   ],
+   "gain": 0.55
+  },
+  "blood_splat": {
+   "files": [
+    "sfx/blood_splat_1",
+    "sfx/blood_splat_2",
+    "sfx/blood_splat_3",
+    "sfx/blood_splat_4"
+   ],
+   "gain": 0.6
+  },
+  "buy_open": {
+   "files": [
+    "sfx/buy_open_1",
+    "sfx/buy_open_2"
+   ],
+   "gain": 0.7
+  },
+  "buy_sign": {
+   "files": [
+    "sfx/buy_sign_1",
+    "sfx/buy_sign_2"
+   ],
+   "gain": 0.85
+  },
+  "count_end": {
+   "files": [
+    "sfx/count_end_1",
+    "sfx/count_end_2"
+   ],
+   "gain": 0.8
+  },
+  "count_loop": {
+   "files": [
+    "sfx/count_loop_1"
+   ],
+   "gain": 0.35
+  },
+  "crowd_bed": {
+   "files": [
+    "sfx/crowd_bed_1"
+   ],
+   "gain": 0.45
+  },
+  "crowd_roar": {
+   "files": [
+    "sfx/crowd_roar_1",
+    "sfx/crowd_roar_2"
+   ],
+   "gain": 0.8
+  },
+  "damage_up": {
+   "files": [
+    "sfx/damage_up_1",
+    "sfx/damage_up_2",
+    "sfx/damage_up_3",
+    "sfx/damage_up_4"
+   ],
+   "gain": 0.5
+  },
+  "extra_rounds": {
+   "files": [
+    "sfx/extra_rounds_1",
+    "sfx/extra_rounds_2"
+   ],
+   "gain": 0.95
+  },
+  "fight_over": {
+   "files": [
+    "sfx/fight_over_1",
+    "sfx/fight_over_2"
+   ],
+   "gain": 0.9
+  },
+  "grudge_stamp": {
+   "files": [
+    "sfx/grudge_stamp_1",
+    "sfx/grudge_stamp_2"
+   ],
+   "gain": 0.9
+  },
+  "hit_big": {
+   "files": [
+    "sfx/hit_big_1",
+    "sfx/hit_big_2",
+    "sfx/hit_big_3",
+    "sfx/hit_big_4"
+   ],
+   "gain": 0.95
+  },
+  "hit_small": {
+   "files": [
+    "sfx/hit_small_1",
+    "sfx/hit_small_2",
+    "sfx/hit_small_3",
+    "sfx/hit_small_4"
+   ],
+   "gain": 0.7
+  },
+  "knockout": {
+   "files": [
+    "sfx/knockout_1",
+    "sfx/knockout_2"
+   ],
+   "gain": 1.0
+  },
+  "no_credit": {
+   "files": [
+    "sfx/no_credit_1"
+   ],
+   "gain": 0.6
+  },
+  "reel_stop": {
+   "files": [
+    "sfx/reel_stop_1",
+    "sfx/reel_stop_2",
+    "sfx/reel_stop_3",
+    "sfx/reel_stop_4"
+   ],
+   "gain": 0.55
+  },
+  "spin": {
+   "files": [
+    "sfx/spin_1",
+    "sfx/spin_2",
+    "sfx/spin_3",
+    "sfx/spin_4"
+   ],
+   "gain": 0.75
+  },
+  "takedown": {
+   "files": [
+    "sfx/takedown_1",
+    "sfx/takedown_2",
+    "sfx/takedown_3",
+    "sfx/takedown_4"
+   ],
+   "gain": 0.85
+  },
+  "tier_brutal": {
+   "files": [
+    "sfx/tier_brutal_1",
+    "sfx/tier_brutal_2"
+   ],
+   "gain": 0.95
+  },
+  "tier_goated": {
+   "files": [
+    "sfx/tier_goated_1",
+    "sfx/tier_goated_2"
+   ],
+   "gain": 1.0
+  },
+  "tier_rocked": {
+   "files": [
+    "sfx/tier_rocked_1",
+    "sfx/tier_rocked_2"
+   ],
+   "gain": 0.9
+  },
+  "tier_savage": {
+   "files": [
+    "sfx/tier_savage_1",
+    "sfx/tier_savage_2"
+   ],
+   "gain": 1.0
+  },
+  "ui_click": {
+   "files": [
+    "sfx/ui_click_1",
+    "sfx/ui_click_2"
+   ],
+   "gain": 0.5
+  }
+ },
+ "music": {
+  "fight": {
+   "file": "music/music_fight",
+   "loopStart": 15.36,
+   "loopEnd": 179.92442,
+   "gain": 1.0
+  }
+ }
+}

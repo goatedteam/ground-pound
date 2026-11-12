@@ -40,6 +40,8 @@ export class Game {
 
   async init() {
     this.cfg = await this.backend.config();
+    await audio.load();
+    audio.music('base');
     this.balance = await this.backend.start();
     const m = this.cfg.market;
     this.betIndex = Math.max(0, m.bet_ladder_minor.indexOf(m.default_bet_minor));
@@ -47,7 +49,8 @@ export class Game {
     await this.grid.init($('grid'), ['worn', 'blood'].map(set => this.cfg.theme.symbols.map(s => `./assets/symbols/${set}/${s.asset}`)));
     const q = new URLSearchParams(location.search).get('gore');
     this.setGore(q !== null && /^[012]$/.test(q) ? Number(q) : m.gore ?? 1);
-    this.grid.onReelStop = (_c, scatter) => audio.play(scatter ? 'scatterLand' : 'reelStop');
+    this.grid.onReelStop = (_c, scatter) => audio.play(scatter ? 'belt_land' : 'reel_stop');
+    this.grid.onAnticipation = () => audio.play('anticipation');
     this.grid.setGrid(IDLE);
     $('buySign').hidden = !this.cfg.buys;
     $('btnAuto').hidden = !m.autoplay;
@@ -65,8 +68,8 @@ export class Game {
     $('btnMinus').addEventListener('click', () => this.changeBet(-1));
     $('btnPlus').addEventListener('click', () => this.changeBet(1));
     $('buySign').addEventListener('click', () => this.openBuy());
-    $('btnInfo').addEventListener('click', () => this.openRules());
-    $('btnRules').addEventListener('click', () => this.openRules());
+    $('btnInfo').addEventListener('click', () => { audio.play('ui_click'); this.openRules(); });
+    $('btnRules').addEventListener('click', () => { audio.play('ui_click'); this.openRules(); });
     $('btnAuto').addEventListener('click', () => this.toggleAuto());
     $('btnSound').addEventListener('click', () => {
       audio.setEnabled(!audio.enabled);
@@ -111,7 +114,7 @@ export class Game {
     $('beltCount').textContent = `${Math.min(n, 9)}/3`;
     const el = document.querySelector('.belt')!;
     el.classList.toggle('lit', n >= 3);
-    if (bump && n > 0) { el.classList.remove('bump'); void (el as HTMLElement).offsetWidth; el.classList.add('bump'); audio.play('beltCount'); }
+    if (bump && n > 0) { el.classList.remove('bump'); void (el as HTMLElement).offsetWidth; el.classList.add('bump'); audio.play('belt_count'); }
   }
   private toast(text: string, hold = 0.9) {
     const t = $('toast'); t.textContent = text;
@@ -126,7 +129,7 @@ export class Game {
   private changeBet(d: number) {
     if (this.busy) return;
     this.betIndex = Math.min(this.cfg.market.bet_ladder_minor.length - 1, Math.max(0, this.betIndex + d));
-    audio.play('click'); this.refresh();
+    audio.play('bet_step'); this.refresh();
   }
   private speedUp() { if (this.cfg.market.turbo) { this.fast = true; gsap.globalTimeline.timeScale(3); } }
   private setBusy(b: boolean) { this.busy = b; if (!b) { this.fast = false; gsap.globalTimeline.timeScale(1); } this.refresh(); }
@@ -154,7 +157,7 @@ export class Game {
 
   async spin() {
     if (this.busy || !$('overlay').hidden) return;
-    if (this.balance < this.bet) { this.strip('Not enough credit', ''); audio.play('error'); this.auto = 0; this.refresh(); return; }
+    if (this.balance < this.bet) { this.strip('Not enough credit', ''); audio.play('no_credit'); this.auto = 0; this.refresh(); return; }
     this.setBusy(true);
     try {
       await this.cycleGuard();
@@ -171,7 +174,7 @@ export class Game {
     console.error(e);
     this.auto = 0;
     this.strip('Something went wrong', String((e as Error)?.message ?? e).slice(0, 60));
-    audio.play('error');
+    audio.play('no_credit');
   }
 
   private toggleAuto() {
@@ -193,13 +196,13 @@ export class Game {
         <div class="opt"><span class="k">${b.super.name}</span><span class="d p">${price('super')}</span><p>Every cell starts with x5, x10 or x15 Damage.</p><button class="btn red" data-kind="super">Sign for ${b.super.name}</button></div>
       </div>
       <button class="btn ghost" data-kind="cancel">Walk away</button></div></div>`;
-    ov.hidden = false;
+    ov.hidden = false; audio.play('buy_open');
     let armed = '';
     const close = () => { ov.hidden = true; ov.innerHTML = ''; this.dismiss = null; };
     this.dismiss = close;
     ov.querySelectorAll<HTMLButtonElement>('button').forEach(btn => btn.addEventListener('click', () => {
       const kind = btn.dataset.kind!;
-      audio.play('click');
+      audio.play('ui_click');
       if (kind === 'cancel') return close();
       const k = kind as 'standard' | 'super';
       if (this.balance < b[k].price * bet) { btn.textContent = 'Not enough credit'; btn.disabled = true; return; }
@@ -209,7 +212,7 @@ export class Game {
         btn.classList.add('confirm'); btn.textContent = `Confirm ${price(k)}`;
         return;
       }
-      close(); this.buy(k);
+      audio.play('buy_sign'); close(); this.buy(k);
     }));
   }
 
@@ -257,7 +260,7 @@ export class Game {
           $('strip2').innerHTML = this.fight ? `Spins left ${Math.max(ev.spinsLeft ?? 0, 0)}` : '';
           if (ev.clearMarks) this.grid.showMarks(ZERO);
           if (ev.kind === 'free') {
-            if (ev.retrigger) { audio.play('retrigger'); await this.toast(`+${this.cfg.rules.retrigger_spins} spins`); }
+            if (ev.retrigger) { audio.play('extra_rounds'); await this.toast(`+${this.cfg.rules.retrigger_spins} spins`); }
             spinsLeft = ev.spinsLeft ?? 0; this.setSpinsLeft(spinsLeft);
             if (!ev.capped && ev.spinWin >= 2500) await this.tier(ev.spinWin, 1700);
             await wait(PACE.betweenFreeSpins);
@@ -268,7 +271,7 @@ export class Game {
           await this.fightIntro(ev);
           break;
         case 'fs_outro':
-          audio.play('outro');
+          audio.play('fight_over');
           if (!ev.capped) await this.panel(`<h1 class="d ov-h">Title Fight <span>over</span></h1><span class="d ov-s">You have won</span><div class="d ov-total">${this.fromH(ev.win)}</div><span class="d ov-s">in ${ev.spins} free spins</span><span class="ov-hint">Press anywhere to continue</span>`, { red: true });
           break;
         case 'round_end':
@@ -285,7 +288,8 @@ export class Game {
   }
 
   private async evaluate(ev: Extract<Ev, { t: 'eval' }>) {
-    audio.play('clusterWin', { intensity: ev.clusters.length });
+    audio.play(ev.stepWin >= 500 ? 'hit_big' : 'hit_small');
+    if (this.gore === 2) audio.play('blood_splat', { gain: 0.7 });
     if (ev.capped) gsap.globalTimeline.timeScale(0.35); // the finishing blow lands in slow motion
     if (ev.stepWin >= 500) this.flash();
     const pulse = this.grid.highlight(ev.clusters);
@@ -299,7 +303,7 @@ export class Game {
     if (ev.capped) gsap.globalTimeline.timeScale(1);
     gsap.to($('popup'), { opacity: 0, duration: 0.15 });
     this.showWin(ev.roundWin);
-    this.grid.showMarks(ev.marksAfter, true); audio.play('damage');
+    this.grid.showMarks(ev.marksAfter, true); audio.play('damage_up');
     await wait(PACE.afterMarks);
   }
 
@@ -328,13 +332,13 @@ export class Game {
 
   private async fightIntro(ev: Extract<Ev, { t: 'fs_intro' }>) {
     if (!ev.bought) await wait(0.7);
-    audio.play('fightIntro');
+    audio.play('bell_intro'); audio.play('crowd_roar', { gain: 0.8 });
     await this.panel(`<h1 class="d ov-h">It's a <span>Title Fight</span></h1><span class="d ov-s">You have won</span><div class="ov-card"><img src="./assets/ui/roundcard.webp" alt=""><div class="d">${ev.awarded}</div></div><span class="d ov-s">Free spins</span><span class="ov-hint">Press anywhere to continue</span>`, { red: true });
     this.setFight(true);
     this.setSpinsLeft(ev.awarded);
     $('strip2').innerHTML = `Spins left ${ev.awarded}`;
     this.grid.clearHighlight();
-    if (ev.preheated) { this.grid.showMarks(ev.startMarks, true); audio.play('damage'); await this.toast(this.cfg.buys?.super.name ?? 'Grudge Match', 1.0); }
+    if (ev.preheated) { this.grid.showMarks(ev.startMarks, true); audio.play('grudge_stamp'); await this.toast(this.cfg.buys?.super.name ?? 'Grudge Match', 1.0); }
     else this.grid.showMarks(ev.startMarks);
     await wait(0.35);
   }
@@ -345,10 +349,12 @@ export class Game {
     let name = '';
     for (const t of tiers) if (x >= t.min) name = t.name;
     if (!name) return;
-    audio.play('tier', { intensity: tiers.findIndex(t => t.name === name) + 1 });
+    audio.play(['tier_rocked', 'tier_brutal', 'tier_savage', 'tier_goated'][Math.max(0, tiers.findIndex(t => t.name === name))]);
     const p = this.panel(`<h1 class="d ov-h big">${name}!</h1><div class="ov-plate"><img src="./assets/ui/plate.webp" alt=""><div class="d" id="tierAmt"></div></div>`, { red: true, autoMs: ms });
     const o = { v: 0 }, el = document.getElementById('tierAmt')!;
-    gsap.to(o, { v: h, duration: Math.min(1.6, ms / 1600), ease: 'power1.out', onUpdate: () => { el.textContent = this.fromH(Math.round(o.v / 5) * 5); } });
+    audio.loop('count_loop');
+    gsap.to(o, { v: h, duration: Math.min(1.6, ms / 1600), ease: 'power1.out', onUpdate: () => { el.textContent = this.fromH(Math.round(o.v / 5) * 5); },
+      onComplete: () => { audio.stopLoop('count_loop'); audio.play('count_end'); } });
     await p;
   }
 

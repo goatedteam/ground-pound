@@ -25,6 +25,7 @@ export class GridView {
   private badges: HTMLElement[] = [];
   private marks: number[] = Array(36).fill(0);
   onReelStop: (col: number, scatter: boolean) => void = () => {};
+  onAnticipation: () => void = () => {};
 
   async init(host: HTMLElement, sets: string[][]) {
     const tileLayer = document.createElement('div'); tileLayer.className = 'g-layer g-tiles';
@@ -99,7 +100,10 @@ export class GridView {
       const old = this.sprites[c];
       const start = c * TIMING.reelStagger;
       old.forEach(s => tl.to(s, { y: s.y + H + 60, duration: TIMING.dropOut, ease: 'power2.in', onComplete: () => s.destroy() }, start));
-      if (seen >= 2) extra += TIMING.anticipation; // two belts down: the remaining reels hang
+      if (seen >= 2) { // two belts down: the remaining reels hang
+        if (extra === 0) tl.call(() => this.onAnticipation(), [], start + TIMING.dropOut);
+        extra += TIMING.anticipation;
+      }
       const fresh: Sprite[] = [];
       const hasScatter = grid.some(row => row[c] === SCATTER);
       for (let r = 0; r < ROWS; r++) {
