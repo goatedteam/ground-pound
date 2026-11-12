@@ -94,6 +94,19 @@ button.sign:disabled { filter: saturate(0.5) brightness(0.8); }
 .spin:hover:not(:disabled) img { filter: brightness(1.08); }
 .spin:active:not(:disabled) { transform: scale(0.96); }
 .spin:disabled { filter: saturate(0.4) brightness(0.75); }
+/* Title Fight: the spin button switches between normal and turbo speed */
+.spin .i-normal, .spin .i-turbo, .spin .speed-lbl { display: none; }
+.spin.speedmode .i-spin, .spin.speedmode .i-stop { display: none !important; }
+.spin.speedmode svg { top: 40%; }
+.spin.speedmode:not(.turbo) .i-normal, .spin.speedmode.turbo .i-turbo { display: block; }
+.spin.speedmode .speed-lbl { display: block; position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%); font-size: 14px; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; }
+.spin.speedmode.turbo { color: #fff; box-shadow: 0 0 0 4px #ff3b4e, 0 0 22px 6px rgba(255, 59, 78, 0.65); animation: turboGlow 0.9s ease-in-out infinite; }
+.spin.speedmode.turbo img { filter: hue-rotate(-32deg) saturate(1.6) brightness(0.95); }
+.spin.speedmode.turbo svg, .spin.speedmode.turbo .speed-lbl { filter: drop-shadow(0 2px 0 #4a0710); }
+.spin.switched { animation: speedSwitch 0.28s ease-out; }
+.spin.speedmode.turbo.switched { animation: speedSwitch 0.28s ease-out, turboGlow 0.9s ease-in-out 0.28s infinite; }
+@keyframes turboGlow { 0%, 100% { box-shadow: 0 0 0 4px #ff3b4e, 0 0 18px 4px rgba(255, 59, 78, 0.55); } 50% { box-shadow: 0 0 0 4px #ff6b3b, 0 0 30px 10px rgba(255, 90, 40, 0.8); } }
+@keyframes speedSwitch { 0% { transform: scale(0.88); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
 #btnAuto { position: absolute; left: 8px; bottom: 2px; width: 100px; height: 20px; }
 
 .flash { position: absolute; inset: 0; z-index: 5; background: #fff; opacity: 0; pointer-events: none; }
@@ -152,4 +165,4 @@ button.sign:disabled { filter: saturate(0.5) brightness(0.8); }
 .loading.ready { cursor: pointer; }
 .loading.ready #loadingText { font-size: 22px; letter-spacing: 0.2em; text-transform: uppercase; animation: loadingPulse 1.4s ease-in-out infinite; }
 @keyframes loadingPulse { 50% { opacity: 0.45; } }
-@media (prefers-reduced-motion: reduce) { .loading.ready #loadingText, .g-badge.pop, .belt.bump .belt-count { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .spin.speedmode.turbo, .spin.switched, .loading.ready #loadingText, .g-badge.pop, .belt.bump .belt-count { animation: none; } }

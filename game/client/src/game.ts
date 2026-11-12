@@ -22,6 +22,8 @@ export class Game {
   private betIndex = 0;
   private busy = false;
   private fight = false;
+  /** Title Fight speed, chosen with the spin button while the bonus plays; kept for later bonuses. */
+  private bonusTurbo = false;
   private auto = 0;
   private fast = false;
   private lastStart = 0;
@@ -77,7 +79,7 @@ export class Game {
   }
 
   private bind() {
-    $('btnSpin').addEventListener('click', () => (this.busy ? this.speedUp() : this.spin()));
+    $('btnSpin').addEventListener('click', () => (this.busy ? (this.fight ? this.toggleBonusSpeed() : this.speedUp()) : this.spin()));
     $('btnMinus').addEventListener('click', () => this.changeBet(-1));
     $('btnPlus').addEventListener('click', () => this.changeBet(1));
     $('buySign').addEventListener('click', () => this.openBuy());
@@ -111,8 +113,15 @@ export class Game {
     ($('btnMinus') as HTMLButtonElement).disabled = !idle || this.betIndex === 0;
     ($('btnPlus') as HTMLButtonElement).disabled = !idle || this.betIndex === ladder.length - 1;
     ($('buySign') as HTMLButtonElement).disabled = !idle;
+    const speedMode = this.busy && this.fight && this.cfg.market.turbo;
     $('btnSpin').classList.toggle('busy', this.busy);
-    $('btnSpin').setAttribute('aria-label', this.busy ? 'Speed up' : 'Spin');
+    $('btnSpin').classList.toggle('speedmode', speedMode);
+    $('btnSpin').classList.toggle('turbo', speedMode && this.bonusTurbo);
+    $('speedLbl').textContent = this.bonusTurbo ? 'Turbo' : 'Normal';
+    $('btnSpin').setAttribute('aria-label', speedMode
+      ? (this.bonusTurbo ? 'Turbo spins on. Switch to normal speed' : 'Normal speed. Switch to turbo spins')
+      : this.busy ? 'Speed up' : 'Spin');
+    if (speedMode) $('btnSpin').setAttribute('aria-pressed', String(this.bonusTurbo)); else $('btnSpin').removeAttribute('aria-pressed');
     ($('btnSpin') as HTMLButtonElement).disabled = this.busy && !this.cfg.market.turbo;
     $('btnAuto').classList.toggle('on', this.auto > 0);
     $('btnAuto').textContent = this.auto > 0 ? `Stop (${this.auto})` : 'Autoplay';
@@ -146,8 +155,20 @@ export class Game {
     this.betIndex = Math.min(this.cfg.market.bet_ladder_minor.length - 1, Math.max(0, this.betIndex + d));
     audio.play('bet_step'); this.refresh();
   }
-  private speedUp() { if (this.cfg.market.turbo) { this.fast = true; gsap.globalTimeline.timeScale(3); } }
-  private setBusy(b: boolean) { this.busy = b; if (!b) { this.fast = false; gsap.globalTimeline.timeScale(1); } this.refresh(); }
+  private speedUp() { if (this.cfg.market.turbo) { this.fast = true; this.applySpeed(); } }
+  /** Animation speed: 3x while Space is held or speed-up was pressed, or through a Title Fight set to turbo. */
+  private applySpeed() {
+    const quick = this.cfg.market.turbo && (this.fast || (this.fight && this.bonusTurbo));
+    gsap.globalTimeline.timeScale(quick ? 3 : 1);
+  }
+  private toggleBonusSpeed() {
+    if (!this.cfg.market.turbo) return;
+    this.bonusTurbo = !this.bonusTurbo;
+    audio.play('ui_click');
+    this.applySpeed(); this.refresh();
+    const b = $('btnSpin'); b.classList.remove('switched'); void b.offsetWidth; b.classList.add('switched');
+  }
+  private setBusy(b: boolean) { this.busy = b; if (!b) this.fast = false; this.applySpeed(); this.refresh(); }
 
   /** Shows a panel over the stage; resolves on click/Space, or after autoMs when given. */
   private panel(html: string, opts: { red?: boolean; autoMs?: number } = {}): Promise<void> {
@@ -265,7 +286,7 @@ export class Game {
     const bet = res.bet_minor;
     let spinsLeft = 0;
     for (const ev of buildTimeline(res.round)) {
-      if (this.fast && this.cfg.market.turbo) gsap.globalTimeline.timeScale(3);
+      this.applySpeed();
       switch (ev.t) {
         case 'spin_start':
           this.grid.showMarks(ev.marks);
@@ -333,7 +354,7 @@ export class Game {
       await wait(ev.clusters.length > 1 ? PACE.perCluster : PACE.evalHold + (big ? 0.15 : 0));
     }
     await pulse;
-    if (ev.capped) gsap.globalTimeline.timeScale(1);
+    if (ev.capped) this.applySpeed();
     if (this.fight) this.hidePopup(); // base game: the last pay stays up until the chain ends
     this.showWin(ev.roundWin);
     this.grid.showMarks(ev.marksAfter, true); audio.play('damage_up');
@@ -357,6 +378,7 @@ export class Game {
 
   private setFight(on: boolean) {
     this.fight = on;
+    this.applySpeed(); this.refresh();
     this.stage.classList.toggle('fight', on);
     $('buySign').hidden = on || !this.cfg.buys;
     $('spinsSign').hidden = !on;
