@@ -55,8 +55,9 @@ game/                  everything you build (server, client, schema, markets)
   branches scattered through code.
 - **IP:** never use "Powernudge"/"PowerNudge", any Pragmatic Play name or
   asset, or a candy theme. Placeholder art until the user picks a theme.
-- **No real-money claims.** The dev RNG is not certified; say so wherever it
-  matters.
+- **No real-money claims.** The dev RNG is not certified. Say so in developer
+  docs and the server config (`certified: false`), not in the player-facing
+  rules screen, which is written for players only.
 
 ## Commands
 

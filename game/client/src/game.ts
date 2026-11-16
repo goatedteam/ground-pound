@@ -56,7 +56,7 @@ export class Game {
     this.grid.setGrid(IDLE);
     $('buySign').hidden = !this.cfg.buys;
     $('btnAuto').hidden = !m.autoplay;
-    $('notice').textContent = this.backend.demo ? 'Demo: play money, pre-drawn rounds' : 'Play money. RNG not certified';
+    $('notice').textContent = this.backend.demo ? 'Demo mode · Play money' : 'Play money';
     this.bind();
     this.refresh();
     this.strip(m.turbo ? 'Hold space for turbo spin' : 'Place your bet', '');
@@ -439,45 +439,49 @@ export class Game {
   // ---------- rules and paytable, generated from the config ----------
   private closeModal() { $('modal').hidden = true; $('modal').innerHTML = ''; }
   private openRules() {
-    const c = this.cfg, t = c.theme, sizes = Object.keys(c.paytable);
+    const c = this.cfg, t = c.theme, m = c.market, sizes = Object.keys(c.paytable);
     const head = t.symbols.slice(0, 8).map(s => `<th><img src="${this.sym(s.id)}" alt="${s.name}"></th>`).join('');
     const rows = sizes.map(k => `<tr><td>${k}</td>${c.paytable[k].map(v => `<td>${this.money(Math.round(v * 100) * this.bet / 100)}</td>`).join('')}</tr>`).join('');
-    const award = Object.entries(c.rules.free_spins_award).map(([n, s]) => `${n === '6' ? '6 or more' : n} belts: ${s} spins`).join(' · ');
-    const buys = c.buys ? `<h3 class="d">Buying the Title Fight</h3><ul>
-      <li><b>${c.buys.standard.name}</b> costs ${c.buys.standard.price}x your bet and starts the Title Fight with 10, 12 or 15 spins.</li>
-      <li><b>${c.buys.super.name}</b> costs ${c.buys.super.price}x your bet. It is the same, and every cell starts with x5, x10 or x15 Damage.</li>
-      <li>A buy has no base spin. You confirm the price before it is charged.</li></ul>` : '';
-    $('modal').innerHTML = `<div class="sheet" role="dialog" aria-label="Rules and paytable">
+    const award = Object.entries(c.rules.free_spins_award).map(([n, s]) => `<li>${n === '6' ? '6 or more' : n} belts: ${s} free spins</li>`).join('');
+    const ladder = m.bet_ladder_minor;
+    const buys = c.buys ? `<h3 class="d">Buy the Title Fight</h3><ul>
+      <li><b>${c.buys.standard.name}</b> costs ${c.buys.standard.price}x your bet and takes you straight into the Title Fight with 10, 12 or 15 free spins.</li>
+      <li><b>${c.buys.super.name}</b> costs ${c.buys.super.price}x your bet. You get the same Title Fight, and every cell starts with x5, x10 or x15 Damage.</li>
+      <li>Prices follow your bet. Tap a contract once to choose it, then again to confirm. Nothing is charged until you confirm.</li></ul>` : '';
+    $('modal').innerHTML = `<div class="sheet" role="dialog" aria-label="How to play">
       <button class="btn close" id="closeModal">Close</button>
       <h2 class="d">${t.name}</h2>
-      <p>${c.notice}</p>
-      <h3 class="d">Violence level (preview setting)</h3>
-      <div class="seg">${t.gore_levels.map((n, i) => `<button class="btn${i === this.gore ? ' confirm' : ''}" data-gore="${i}">${n}</button>`).join('')}</div>
-      <p>Menacing has no blood. Bloodied adds blood to the gear and the canvas. Brutal adds blood spray on hits. Each market is set to one level.</p>
+      <p>Land clusters of matching fight gear in the ring. Every win can start a Takedown chain, and Damage builds up on the canvas to multiply the wins that follow.</p>
+      <h3 class="d">How to play</h3><ul>
+        <li>Choose your bet with the minus and plus buttons, from ${this.money(ladder[0])} to ${this.money(ladder[ladder.length - 1])}, then press Spin.</li>
+        ${m.turbo ? '<li>Hold the Space bar for faster spins.</li>' : ''}
+        ${m.autoplay ? '<li>Autoplay plays 25 spins in a row for you. Press it again at any time to stop.</li>' : ''}
+        <li>Wins are added to your credit at the end of each round.</li></ul>
       <h3 class="d">Paytable at your current bet (${this.money(this.bet)})</h3>
       <div class="scroll-x"><table><thead><tr><th>Cluster</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
-      <p>A cluster is ${c.rules.min_cluster} or more of the same symbol joined side to side or up and down, not diagonally. Clusters of 15 or more pay the 15+ value. Several clusters can pay at once.</p>
+      <p>A cluster is ${c.rules.min_cluster} or more matching symbols touching side by side or above and below. Diagonals don't count. Clusters of 15 or more pay the 15+ amount, and several clusters can pay on the same spin.</p>
       <h3 class="d">Takedown and Ground &amp; Pound</h3><ul>
-        <li>When a spin wins, every reel that holds a winning symbol can slide down one row. The bottom symbol leaves and a new one enters at the top. Reels with no winning symbol stay still.</li>
-        <li>The grid then pays again, and this repeats until a slide brings no win.</li>
-        <li>In the base game, one random roll on the spin's first win decides whether the chain runs. The chance is fixed at ${(c.base_nudge_probability * 100).toFixed(1)}% and never changes with your results. In the Title Fight every win slides.</li></ul>
+        <li>After a win, every reel holding a winning symbol slides down one row. The bottom symbol drops off and a new one drops in at the top. Reels without a winning symbol stay put.</li>
+        <li>The new grid pays again, and the chain keeps going for as long as each slide brings a new win. That chain is the Ground &amp; Pound.</li>
+        <li>In the base game, a chain follows the first win of a spin ${(c.base_nudge_probability * 100).toFixed(1)}% of the time. In the Title Fight, every win starts a chain.</li></ul>
       <h3 class="d">Damage</h3><ul>
-        <li>Damage belongs to grid cells. It does not move when the reels slide.</li>
-        <li>A cluster's pay is multiplied by the total Damage under its cells as it stood before that pay. If the total is zero, the multiplier is 1.</li>
-        <li>After the pay, every cell of every winning cluster gains +1 Damage. Damage never boosts the win that created it.</li>
-        <li>In the base game Damage is cleared when the spin ends. In the Title Fight it stays for the whole round.</li></ul>
-      <h3 class="d">Title Fight</h3><ul>
-        <li>The star belt is the scatter. It pays nothing itself. Belts are counted on the landing grid plus every belt that enters during the chain; each counts once, even after it slides off.</li>
-        <li>${award}.</li>
-        <li>Three or more belts in one free spin add ${c.rules.retrigger_spins} spins, with no limit.</li></ul>
+        <li>Damage marks sit on the cells of the ring, not on the symbols, so they stay where they are when the reels slide.</li>
+        <li>A cluster's win is multiplied by the total Damage on the cells it covers. With no Damage underneath, it pays its normal amount.</li>
+        <li>After a cluster pays, each of its cells gains +1 Damage, ready for the next win.</li>
+        <li>In the base game, Damage clears at the end of each spin. In the Title Fight, it stays for the whole bonus.</li></ul>
+      <h3 class="d">Title Fight free spins</h3><ul>
+        <li>The star belt is the scatter. Belts count when they land and when they slide in during a chain, and each belt counts once.</li>
+        ${award}
+        <li>Land 3 or more belts on a single free spin to win ${c.rules.retrigger_spins} more free spins. This can happen any number of times.</li>
+        ${m.turbo ? '<li>During the Title Fight, tap the spin button to switch between normal and turbo speed.</li>' : ''}</ul>
       ${buys}
       <h3 class="d">Maximum win</h3>
-      <p>A round is capped at ${c.rules.max_win.toLocaleString('en-US')}x your bet. Reaching it is a ${t.cap_name}: the round pays exactly that amount and ends at once, and any remaining free spins are not played.</p>
+      <p>The most you can win in one round is ${c.rules.max_win.toLocaleString('en-US')}x your bet. Reach it and it's a ${t.cap_name}: you are paid the maximum straight away and the round ends, along with any free spins still to play.</p>
       <h3 class="d">Return to player</h3>
-      <p>This version is tuned to about ${c.rtp_target} return to player. Malfunction voids all pays and plays.</p></div>`;
+      <p>The theoretical return to player is ${c.rtp_target}. This is an average over a very large number of rounds; any single session can be higher or lower.</p>
+      <p>Malfunction voids all pays and plays.</p></div>`;
     $('modal').hidden = false;
     $('closeModal').addEventListener('click', () => this.closeModal());
-    $('modal').querySelectorAll<HTMLButtonElement>('[data-gore]').forEach(b => b.addEventListener('click', () => { this.setGore(Number(b.dataset.gore)); this.openRules(); }));
     $('modal').addEventListener('click', ev => { if (ev.target === $('modal')) this.closeModal(); }, { once: true });
   }
 }
