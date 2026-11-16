@@ -98,9 +98,9 @@ button.sign:disabled { filter: saturate(0.5) brightness(0.8); }
 /* Title Fight: the spin button switches between normal and turbo speed */
 .spin .i-normal, .spin .i-turbo, .spin .speed-lbl { display: none; }
 .spin.speedmode .i-spin, .spin.speedmode .i-stop { display: none !important; }
-.spin.speedmode svg { top: 40%; }
+.spin.speedmode svg { top: 42%; }
 .spin.speedmode:not(.turbo) .i-normal, .spin.speedmode.turbo .i-turbo { display: block; }
-.spin.speedmode .speed-lbl { display: block; position: absolute; left: 50%; bottom: 25px; transform: translateX(-50%); font-size: 14px; line-height: 1; letter-spacing: 0.08em; text-transform: uppercase; }
+.spin.speedmode .speed-lbl { display: block; position: absolute; left: 50%; top: calc(50% + 13px); transform: translateX(-50%); font-size: 11px; line-height: 1; letter-spacing: 0.05em; white-space: nowrap; text-transform: uppercase; }
 .spin.speedmode.turbo { color: #fff; box-shadow: 0 0 0 4px #ff3b4e, 0 0 22px 6px rgba(255, 59, 78, 0.65); animation: turboGlow 0.9s ease-in-out infinite; }
 .spin.speedmode.turbo img { filter: hue-rotate(-32deg) saturate(1.6) brightness(0.95); }
 .spin.speedmode.turbo svg, .spin.speedmode.turbo .speed-lbl { filter: drop-shadow(0 2px 0 #4a0710); }
