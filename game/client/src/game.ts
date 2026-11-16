@@ -252,7 +252,6 @@ export class Game {
     const ov = $('overlay');
     ov.className = 'overlay';
     ov.innerHTML = `<div class="contract"><img src="./assets/ui/contract_large.webp" alt=""><div class="contract-in">
-      <h1 class="d">Buy <span>Title Fight</span></h1>
       <div class="opts">
         <div class="opt"><span class="k">${b.standard.name}</span><span class="d p" data-price="standard"></span><p>Straight to the Title Fight. The canvas starts clean.</p><button class="btn" data-kind="standard"></button></div>
         <div class="opt"><span class="k">${b.super.name}</span><span class="d p" data-price="super"></span><p>Every cell starts with x5, x10 or x15 Damage.</p><button class="btn red" data-kind="super"></button></div>
@@ -267,7 +266,7 @@ export class Game {
         ov.querySelector(`[data-price="${k}"]`)!.textContent = price(k);
         const el = btn(k), short = this.balance < b[k].price * this.bet;
         el.classList.remove('confirm'); el.disabled = short;
-        el.textContent = short ? 'Not enough credit' : `Sign for ${b[k].name}`;
+        el.textContent = short ? 'Not enough credit' : `Buy ${b[k].name} Spins`;
       }
     };
     render();
@@ -444,10 +443,10 @@ export class Game {
     const rows = sizes.map(k => `<tr><td>${k}</td>${c.paytable[k].map(v => `<td>${this.money(Math.round(v * 100) * this.bet / 100)}</td>`).join('')}</tr>`).join('');
     const award = Object.entries(c.rules.free_spins_award).map(([n, s]) => `<li>${n === '6' ? '6 or more' : n} belts: ${s} free spins</li>`).join('');
     const ladder = m.bet_ladder_minor;
-    const buys = c.buys ? `<h3 class="d">Buy the Title Fight</h3><ul>
+    const buys = c.buys ? `<h3 class="d">Buy Free Spins</h3><ul>
       <li><b>${c.buys.standard.name}</b> costs ${c.buys.standard.price}x your bet and takes you straight into the Title Fight with 10, 12 or 15 free spins.</li>
       <li><b>${c.buys.super.name}</b> costs ${c.buys.super.price}x your bet. You get the same Title Fight, and every cell starts with x5, x10 or x15 Damage.</li>
-      <li>Prices follow your bet. Tap a contract once to choose it, then again to confirm. Nothing is charged until you confirm.</li></ul>` : '';
+      <li>Prices follow your bet. Tap a buy button once to choose it, then again to confirm. Nothing is charged until you confirm.</li></ul>` : '';
     $('modal').innerHTML = `<div class="sheet" role="dialog" aria-label="How to play">
       <button class="btn close" id="closeModal">Close</button>
       <h2 class="d">${t.name}</h2>
@@ -469,9 +468,13 @@ export class Game {
         <li>A cluster's win is multiplied by the total Damage on the cells it covers. With no Damage underneath, it pays its normal amount.</li>
         <li>After a cluster pays, each of its cells gains +1 Damage, ready for the next win.</li>
         <li>In the base game, Damage clears at the end of each spin. In the Title Fight, it stays for the whole bonus.</li></ul>
+      <h3 class="d">Scatter</h3>
+      <div class="scatter-info"><img src="${this.sym(8)}" alt="${t.symbols[8].name}"><div>
+        <p>The <b>${t.symbols[8].name}</b> is the scatter. It doesn't need to be in a cluster and pays nothing on its own. Collect 3 or more in one spin to start the Title Fight free spins.</p><ul>
+        ${award}</ul>
+        <p>Belts count when they land and when they slide in during a chain, and each belt counts once, even after it slides off. The belt counter beside the ring keeps track.</p></div></div>
       <h3 class="d">Title Fight free spins</h3><ul>
-        <li>The star belt is the scatter. Belts count when they land and when they slide in during a chain, and each belt counts once.</li>
-        ${award}
+        <li>Every win starts a Takedown chain, and Damage stays on the ring for the whole bonus.</li>
         <li>Land 3 or more belts on a single free spin to win ${c.rules.retrigger_spins} more free spins. This can happen any number of times.</li>
         ${m.turbo ? '<li>During the Title Fight, tap the spin button to switch between normal and turbo speed.</li>' : ''}</ul>
       ${buys}
