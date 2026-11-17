@@ -22,7 +22,8 @@ Development build, play money only. Not real-money ready: the RNG is not certifi
 
 ## Known gaps
 
-- No sound yet. Every hook is wired in `game/client/src/audio.ts`; the sounds are the next pass.
+- Sound is in, but the mix (levels, which take plays where) has only been checked by measurement, not by ear on real devices.
+- Base-game cluster wins at or below the stake still play a hit sound and show a pay popup. Review against no-celebration rules (GB RTS 14F) before a regulated launch.
 - Landscape only. The stage scales to fit, so a phone held upright shows a small letterboxed game. A portrait layout is not designed.
 - The full 10,000-round soak through the browser was not run. The timeline soak covers 6,250 rounds; the browser run covers a few dozen.
 - The Knockout (5,000x) ending is covered by timeline tests on the golden cap round but was not watched in the browser.
